@@ -30,10 +30,30 @@ export default function SheetDataPage({
         )}`
       );
 
-      const data =
-        await res.json();
+      const data = await res.json();
 
-      setRows(data);
+      const header = data[0] || [];
+      const body = data.slice(1);
+
+      const seen = new Set();
+
+      const uniqueRows = body.filter(
+        (row: any[]) => {
+          const placeId = row[7];
+
+          if (!placeId) return true;
+
+          if (seen.has(placeId)) {
+            return false;
+            }
+
+          seen.add(placeId);
+
+          return true;
+        }
+      );
+
+    setRows([header, ...uniqueRows]);
     } catch (error) {
       console.error(error);
     } finally {
@@ -41,37 +61,47 @@ export default function SheetDataPage({
     }
   }
 
-  function exportCSV() {
-    const csv = rows
-      .map((row: any[]) =>
-        row.join(",")
-      )
-      .join("\n");
+function exportCSV() {
+  const csv = rows
+    .map((row: any[]) =>
+      row
+        .map((cell) =>
+          `"${String(cell ?? "")
+            .replace(/"/g, '""')}"`
+        )
+        .join(",")
+    )
+    .join("\n");
 
-    const blob = new Blob(
-      [csv],
-      {
-        type:
-          "text/csv;charset=utf-8;",
-      }
+  const blob = new Blob(
+    [csv],
+    {
+      type: "text/csv;charset=utf-8;",
+    }
+  );
+
+  const url =
+    window.URL.createObjectURL(
+      blob
     );
 
-    const url =
-      window.URL.createObjectURL(
-        blob
-      );
+  const link =
+    document.createElement("a");
 
-    const link =
-      document.createElement("a");
+  link.href = url;
+  link.download =
+    `${sheetName}.csv`;
 
-    link.href = url;
+  document.body.appendChild(
+    link
+  );
 
-    link.download =
-      `${sheetName}.csv`;
+  link.click();
 
-    link.click();
-  }
-
+  document.body.removeChild(
+    link
+  );
+}
   const filteredRows =
     rows.filter((row: any[]) =>
       row
